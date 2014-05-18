@@ -14,46 +14,35 @@ function exitError($err) {
 	die();
 }
 
-function inputMultiple($pinarray) {
-	global $gpio, $result;
-
-	$pins = array();
-	foreach ($pinarray as $key => $pin) {
-		$pins[$pin] = $gpio->input($pin);
-	}
-	$result['pins'] = $pins; 
-}
-
-function outputMultiple($pinarray, $value) {
-	global $gpio;
-	foreach ($pinarray as $key => $pin) {
-		$gpio->output($pin, $value);
-	}
-}
-function blink($pins, $offset = 0, $on = 70, $off = 70, $repeat = 5) {
+function blink($pins, $offset, $on, $off, $repeat) {
 	global $gpio;
 	usleep($offset * 1000);
 	for ($i = 0; $i < $repeat; $i++) { 
-		foreach ($pins as $key => $pin) { 
-			$gpio->output($pin, Gpio::HIGH);
-		}
+		$gpio->output($pins, Gpio::HIGH);
 		usleep($on * 1000);
-		foreach ($pins as $key => $pin) {
-			$gpio->output($pin, Gpio::LOW);
-		}
+		$gpio->output($pins, Gpio::LOW);
 		usleep($off * 1000);
 	}
 }
 
-function validateMultiple($pinarray) {
+function carousel($pins, $numOnPins, $hop, $repeat) {
 	global $gpio;
-	foreach($pinarray as $key => $pin) {
-		if (!$gpio->validatePin($pin)) {
-			return false;
+	$size = count($pins);
+	// First put them all off
+	$gpio->output($pins, Gpio::LOW);
+	for ($i = 0; $i < $repeat * $size; $i++) {
+		$position = $i % $size;
+		for ($j = 0; $j < $numOnPins; $j++) {
+			$gpio->output($pins[($position + $j) % $size], Gpio::HIGH);
+		}
+		usleep($hop * 1000);
+		// Prepare for next loop
+		for ($j = 0; $j < $numOnPins; $j++) {
+			$gpio->output($pins[($position + $j) % $size], Gpio::LOW);
 		}
 	}
-	return true;
 }
+
 
 // Let the user execute whatever long operation he wants (blink a led for a week?)
 // He can close the connection if he thinks it takes too long
@@ -66,17 +55,10 @@ if (!isset($action)) {
 }
 
 if(isset($_GET['pins'])) {
-	$getPins = $_GET['pins'];
-}
-if ($getPins == 'all') {
-	$pins = $gpio->getAllPins();
-} else if (isset($getPins) && !empty($getPins)) {
-	$pins = array_map('trim', explode(',', $getPins));
-} else if ($action != 'get_revision') {
-	exitError("No pins specified");
-}
-if (!validateMultiple($pins)) {
-	exitError("One or more pins are invalid");
+	$pins = Pins::parse($_GET['pins']);
+	if (!$gpio->validatePins($pins)) {
+		$pins = null;
+	}
 }
 
 switch ($action) {
@@ -88,13 +70,20 @@ switch ($action) {
 	blink($pins, $offset, $on, $off, $repeat);
 	break;
 	
+	case 'carousel':
+	$on = $_GET['on'];
+	$hop = $_GET['hop'];
+	$repeat = $_GET['repeat'];
+	carousel($pins, $on, $hop, $repeat);
+	break;
+
 	case 'output':
 	$val = $_GET['value'];
-	outputMultiple($pins, $val);
+	$gpio->output($pins, $val);
 	break;
 
 	case 'input':
-	inputMultiple($pins);
+	$result['pins'] = $gpio->input($pins);
 	break;
 
 	case 'close':
@@ -106,6 +95,6 @@ switch ($action) {
 	break;
 
 }
-
+// Pretty print is just for the demo, you can remove it if you want
 echo json_encode($result, JSON_PRETTY_PRINT);
 ?>

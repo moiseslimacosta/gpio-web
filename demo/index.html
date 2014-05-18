@@ -53,14 +53,11 @@
 	</div>
 	<form class="box">
 		<input type="hidden" name="action" value="blink">
+		<input type="hidden" name="offset" value="0">
 		<h2>Blink</h2>
 		<input class="small" name="pins" type="text" value="all">
 		<span>Pins</span>
 		<br>
-		<!--
-		<input class="small" name="offset" type="text">
-		<span>first led on after... (ms)</span>
-		<br>-->
 		<input class="small" name="on" type="text" value="70">
 		<span>on time (ms)</span>
 		<br>
@@ -74,6 +71,27 @@
 	</form>
 
 	<form class="box">
+		<input type="hidden" name="action" value="carousel">
+		<h2>Carousel</h2>
+		<span>If you wire some pins to the raspberry, and enter the pin numbers in order, this will become a carousel / christmas tree lights. Try connecting connecting 10 leds to 10 pins</span>
+		<br>
+		<input class="small" name="pins" type="text" value="all">
+		<span>Target pins (if you enter all, you may see skips)</span>
+		<br>
+		<input class="small" name="on" type="text" value="1">
+		<span>Number of enabled pins</span>
+		<br>
+		<input class="small" name="hop" type="text" value="70">
+		<span>Hop time (ms)</span>
+		<br>
+		<input class="small" name="repeat" type="text" value="5">
+		<span>number of loops</span>
+		<br>
+
+		<input type="submit" value="Carousel!"></input>
+	</form>
+
+	<form  class="box">
 		<input type="hidden" name="action" value="input">
 		<h2>Read pins</h2>
 		<input class="small" name="pins" type="text" value="all">
@@ -82,20 +100,28 @@
 		<input type="submit" value="Read"></input>
 	</form>
 
-	<form class="box">
+	<form class="box write">
 		<h2>Write pins</h2>
 		<input type="hidden" name="action" value="output">
 		<input class="small" name="pins" type="text" value="all">
 		<span>Pins</span>
 		<br>
-		<input type="radio" name="value" value="1" checked="checked">On<br>
-		<input type="radio" name="value" value="0">Off<br>
+		<input id="write-on" type="radio" name="value" value="1" checked="checked">On<br>
+		<input id="write-off" type="radio" name="value" value="0">Off<br>
+		<label><input id="write-checkbox" type="checkbox" checked="checked"> Auto toggle on/off radio</label><br>
 		<input type="submit" value="Write"></input>
 	</form>
 
 	<form class="box">
 		<h2>Get revision</h2>
 		<input type="hidden" name="action" value="get_revision">
+		<br>
+		<input type="submit" value="Submit"></input>
+	</form>
+	<form class="box">
+		<h2>Close</h2>
+		<span>Always close the session after you use the GPIO</span>
+		<input type="hidden" name="action" value="close">
 		<br>
 		<input type="submit" value="Submit"></input>
 	</form>
@@ -111,7 +137,6 @@
 	<script type="text/javascript">
 	$(document).ready(function() {
 		$("form").submit(function() {
-			console.log("submit!");
 			var url = "../api/v1/api.php"; 
 			$.ajax({
 				type: "get",
@@ -122,8 +147,13 @@
 					$("#output").html(data); 
 				}
 			});
-			console.log("form: "  + $(this).serialize());
-			return false; 
+			// Toggle on off
+			if ($(this).hasClass("write") && $("#write-checkbox").prop("checked")) {
+				var on = $("#write-on").prop("checked");
+				$("#write-on").prop("checked", !on);
+				$("#write-off").prop("checked", on);
+			}
+			return false;
 		});
 	});
 	</script>
