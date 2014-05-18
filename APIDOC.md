@@ -29,7 +29,7 @@ When building the request, you <b>must</b> include the <b>action</b> parameter, 
 
 ``` json
 {
-    'status' : 'ok',
+    "status" : "ok",
     "pins" : {
         "17" : "1",
         "2" : "0",
@@ -57,7 +57,7 @@ When building the request, you <b>must</b> include the <b>action</b> parameter, 
 
 ``` json
 {
-    'status' : 'ok',
+    "status" : "ok",
     "revision" : "rev2"
 }
 ```
