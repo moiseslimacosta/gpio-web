@@ -1,0 +1,4 @@
+# File to be sourced in install.sh and clean.sh
+
+PRIORITY=99
+RULES_TARGET="/etc/udev/rules.d/${PRIORITY}-gpio-web.rules"

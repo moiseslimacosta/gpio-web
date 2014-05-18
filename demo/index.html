@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>gpio-web example</title>
+	<style type="text/css">
+	body {
+		background-color: #f8f8f8;
+	}
+	input.small {
+		width: 5em;
+	}
+	form, .box {
+		max-width: 500px;
+	}
+	.box {
+		padding: 2em;
+		margin: 2em;
+		border: 1px solid black;
+		background-color: #eee;
+	}
+	.box.box-no-bg {
+		background-color: #f8f8f8;
+	}
+	.container {
+		position: fixed;
+		top: 0px;
+		right: 0px;
+	}
+	#out-container,pre {
+		margin: 2em;
+		padding:1em;
+	}
+	#output {
+		width: 400px;
+		min-height: 300px;
+	}
+	pre {
+		margin: 1.5em;
+		padding:.5em;
+		white-space: pre-wrap;
+		word-wrap: break-word;
+		overflow: auto;
+		font-size: 1em;
+	}
+	</style>
+</head>
+
+<body>
+	<div class="box">
+		<p>This is a very simple example to demonstrate the power of the gpio-web API, feel free to inspect the source and modify it to your needs</p>
+		<p>Pins have can be either a comma-separated list of BCM pin numbers, or the word "all"</p>
+		<span>This project is also availble on <a href="https://github.com/twinone/gpio-web">github</a></span>
+	</div>
+	<form class="box">
+		<input type="hidden" name="action" value="blink">
+		<h2>Blink</h2>
+		<input class="small" name="pins" type="text" value="all">
+		<span>Pins</span>
+		<br>
+		<!--
+		<input class="small" name="offset" type="text">
+		<span>first led on after... (ms)</span>
+		<br>-->
+		<input class="small" name="on" type="text" value="70">
+		<span>on time (ms)</span>
+		<br>
+		<input class="small" name="off" type="text" value="70">
+		<span>off time (ms)</span>
+		<br>
+		<input class="small" name="repeat" type="text" value="10">
+		<span>repeat count</span>
+		<br>
+		<input type="submit" value="Blink!"></input>
+	</form>
+
+	<form class="box">
+		<input type="hidden" name="action" value="input">
+		<h2>Read pins</h2>
+		<input class="small" name="pins" type="text" value="all">
+		<span>Pins</span>
+		<br>
+		<input type="submit" value="Read"></input>
+	</form>
+
+	<form class="box">
+		<h2>Write pins</h2>
+		<input type="hidden" name="action" value="output">
+		<input class="small" name="pins" type="text" value="all">
+		<span>Pins</span>
+		<br>
+		<input type="radio" name="value" value="1" checked="checked">On<br>
+		<input type="radio" name="value" value="0">Off<br>
+		<input type="submit" value="Write"></input>
+	</form>
+
+	<form class="box">
+		<h2>Get revision</h2>
+		<input type="hidden" name="action" value="get_revision">
+		<br>
+		<input type="submit" value="Submit"></input>
+	</form>
+
+	<div id="out-container" class="box container">
+		<span>Request url:</span><br>
+		<pre id="request-url" class="box box-no-bg"></pre>
+		<span>Server output:</span><br>
+		<pre id="output" class="box box-no-bg"></pre>
+	</div>
+
+	<script type="text/javascript" src="js/jquery.min.js"></script>
+	<script type="text/javascript">
+	$(document).ready(function() {
+		$("form").submit(function() {
+			console.log("submit!");
+			var url = "../api/v1/api.php"; 
+			$.ajax({
+				type: "get",
+				url: url,
+				data: $(this).serialize(), 
+				success: function(data) {
+					$("#request-url").text(this.url);
+					$("#output").html(data); 
+				}
+			});
+			console.log("form: "  + $(this).serialize());
+			return false; 
+		});
+	});
+	</script>
+</body>
+</html>
