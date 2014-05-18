@@ -46,4 +46,4 @@ http://rasbperry_ip_address_here/gpio-web/demo
 Building an API Client
 ======================
 
-See the [API doc]() for more info
+See the [API doc](https://github.com/twinone/gpio-web/blob/master/APIDOC.md) for more info
