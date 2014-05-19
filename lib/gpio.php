@@ -4,13 +4,13 @@
 class Pins {
 
 	// Returns an array
-	public static function parse($pinspec) {
+	public static function parse(Gpio $gpio, $pinspec) {
 		if (is_array($pinspec)) {
 			// Return original array
 			return $pinspec;
 		} else if ($pinspec == "all") {
 			// all
-			return Pins::all();
+			return $gpio->getAllPins();
 		} else {
 			// 2,3,6,6
 			return array_map('trim', explode(',', $pinspec));
@@ -29,6 +29,54 @@ class Pins {
 	// http://ecuflashking.com/2012-12-06-RaspberryPi/Raspberry-Pi-GPIO-Layout-Revision-2-e1347664831557.png
 	public static function r2pins() {
 		return array(2, 3, 4, 7, 8, 9, 10, 11, 14, 15, 17, 18, 22, 23, 24, 25, 27);	
+	}
+	public static function mappings() {
+		return (Board::getRevision() == Board::REV1) ? Pins::r1mappings() : Pins::r2mappings();
+	}
+
+	// Physical in => BCMGPIO
+	public static function r1mappings() {
+		return array(
+			'3'  =>  0,
+			'5'  =>  1,
+			'7'  =>  4,
+			'8'  => 14,
+			'10' => 15,
+			'11' => 17,
+			'12' => 18,
+			'13' => 21,
+			'15' => 22,
+			'16' => 23,
+			'18' => 24,
+			'19' => 10,
+			'21' =>  9,
+			'22' => 25,
+			'23' => 11,
+			'24' =>  8,
+			'26' =>  7
+			);
+	}
+
+	public static function r2mappings() {
+		return array(
+			'3'  =>  2,
+			'5'  =>  3,
+			'7'  =>  4,
+			'8'  => 14,
+			'10' => 15,
+			'11' => 17,
+			'12' => 18,
+			'13' => 27,
+			'15' => 22,
+			'16' => 23,
+			'18' => 24,
+			'19' => 10,
+			'21' =>  9,
+			'22' => 25,
+			'23' => 11,
+			'24' =>  8,
+			'26' =>  7
+			);
 	}
 
 }
@@ -63,37 +111,62 @@ class Gpio {
 	const IN = "in";
 	const OUT = "out";
 
+	// BCM GPIO numbers (default)
+	const MODE_BCM = "bcm";
+	// Physical pin numbers
+	const MODE_BOARD = "board";
+
 	private $revision;
 	private $gpiodir = "/sys/class/gpio";
+	private $mode = Gpio::MODE_BCM;
 
 	// All valid pin numbers are in this array (we don't want to break the board!)
 	private $pins;
+	private $mappings;
 	private $exportPins;
 
 	public function __construct() {
 		$this->pins = Pins::all();
+		$this->mappings = Pins::mappings();
 		$this->revision = Board::getRevision();
 	}
 
-	
+	// Set the current mode (board or bcm)
+	public function setMode($mode) {
+		if ($mode != Gpio::MODE_BCM && $mode != Gpio::MODE_BOARD) return;
+		$this->mode = $mode;
+	}
+
+	// Get the BCM Gpio values for the physical pin
+	private function map($pin) {
+		if ($this->mode == Gpio::MODE_BCM) {
+			return $pin;
+		}
+		return $this->mappings[$pin];
+	}
+	// Return a pin number that the user expects
+	private function unmap($pin) {
+		if ($this->mode == Gpio::MODE_BCM) {
+			return $pin;
+		}
+		return array_search($pin, $this->mappings);
+	}
+
 	public function getRevision() {
 		return $this->revision;
 	}
 
-
-
 	public function validatePins(array $pins) {
 		foreach ($pins as $key => $pin) {
-			if (!is_numeric($pin) || !in_array($pin, $this->pins)) {
+			if (!is_numeric($pin) || !in_array($this->map($pin), $this->pins)) {
 				return false;
 			}
 		}
 		return true;
 	}
 
-
 	private function validatePin($pin) {
-		return (is_numeric($pin) && in_array($pin, $this->pins));
+		return (is_numeric($pin) && in_array($this->map($pin), $this->pins));
 	}
 
 	private function validateDirection($direction) {
@@ -117,7 +190,7 @@ class Gpio {
 		if (!$this->validatePins($pins)) return;
 		foreach ($pins as $key => $pin) {
 			if (!$this->isExported($pin)) {
-				$this->write_safe($this->gpiodir.'/export', $pin);
+				$this->write_safe($this->gpiodir.'/export', $this->map($pin));
 			}
 		}
 	}
@@ -134,7 +207,7 @@ class Gpio {
 		foreach ($pins as $key => $pin) {
 		// Only setup for different direction
 			if ($this->getDirection($pin) != $direction) {
-				$this->write_safe($this->gpiodir.'/gpio'.$pin.'/direction', $direction);
+				$this->write_safe($this->gpiodir.'/gpio'.$this->map($pin).'/direction', $direction);
 			}
 		}		
 		return true;
@@ -146,13 +219,18 @@ class Gpio {
 			$pins = array($pins);
 		foreach ($pins as $key => $pin) {
 			if (!$this->isExported($pin)) return;
-			$this->write_safe($this->gpiodir.'/unexport', $pin);
+			$this->write_safe($this->gpiodir.'/unexport', $this->map($pin));
 		}
 	}
 
 	// Returns an array of pins with which you will be able to work
 	public function getAllPins() {
 		return $this->pins;
+		// $result = array();
+		// foreach ($this->pins as $key => $pin) {
+		// 	$result[]=$this->unmap($pin);
+		// }
+		// return $result;
 	}
 
 
@@ -167,14 +245,14 @@ class Gpio {
 
 	public function isExported($pin) {
 		if (!$this->validatePin($pin)) return false;
-		return file_exists($this->gpiodir.'/gpio'.$pin);
+		return file_exists($this->gpiodir.'/gpio'.$this->map($pin));
 	}
 
 	// Returns the current direction of a pin
 	public function getDirection($pin) {
 		if (!$this->isExported($pin)) 
 			return false;
-		return trim(file_get_contents($this->gpiodir.'/gpio'.$pin.'/direction'));
+		return trim(file_get_contents($this->gpiodir.'/gpio'.$this->map($pin).'/direction'));
 	}
 
 	public function isInput($pin) {
@@ -198,7 +276,7 @@ class Gpio {
 			// TODO Poll support and event notification is ofcourse still missing
 			// But you can use AJAX or websockets in your API to get the value, 
 			// Alghough it will be very slow...
-			$result[$pin] = trim(file_get_contents($this->gpiodir.'/gpio'.$pin.'/value'));			
+			$result[$this->unmap($pin)] = trim(file_get_contents($this->gpiodir.'/gpio'.$this->map($pin).'/value'));			
 		}
 		return $result;
 	}
@@ -210,7 +288,7 @@ class Gpio {
 		
 		if (!$this->setup($pins, Gpio::OUT)) return;
 		foreach ($pins as $key => $pin) {
-			$this->write_safe($this->gpiodir.'/gpio'.$pin.'/value', $value);
+			$this->write_safe($this->gpiodir.'/gpio'.$this->map($pin).'/value', $value);
 		}
 	}
 

@@ -54,10 +54,15 @@ if (!isset($action)) {
 	exitError("No action specified");
 }
 
+if (isset($_GET['mode'])) {
+	$gpio->setMode($_GET['mode']);
+}
+
 if(isset($_GET['pins'])) {
-	$pins = Pins::parse($_GET['pins']);
+	$pins = Pins::parse($gpio, $_GET['pins']);
 	if (!$gpio->validatePins($pins)) {
-		$pins = null;
+		echo "not valid<br>";
+		$pins = array();
 	}
 }
 
@@ -92,6 +97,10 @@ switch ($action) {
 
 	case 'get_revision':
 	$result['revision'] = $gpio->getRevision();
+	break;
+
+	case 'get_mappings':
+	$result['mappings'] = Pins::mappings();
 	break;
 
 }

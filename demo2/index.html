@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>gpio-web example</title>
+	<style type="text/css">
+	body {
+		background-color: #f8f8f8;
+	}
+	.container {
+		text-align: center;
+	}
+	#pins-table {
+		margin: 0 auto;
+	}
+	.pin {
+		border: 2px solid black;
+		border-radius: 1em;
+		text-align: center;
+		width: 5em;
+		height: 5em;
+	}
+	/** Ground pin */
+	.pin.gnd {
+		background-color: #000;
+		color: #fff;
+	}
+	.pin.volt1 {
+		background-color: orange;
+	}
+	.pin.volt2 {
+		background-color: orange;
+	}
+	/** All pins that you can turn on and off */
+	.pin.clickable {
+		cursor:	pointer;
+	}
+	.pin.high {
+		background-color: #2ecc71;
+	}
+	.pin.low {
+		background-color: #e74c3c;
+	}
+	</style>
+</head>
+
+<body>
+	<div class="box">
+		<p>This is a very simple example to demonstrate the power of the gpio-web API, feel free to inspect the source and modify it to your needs</p>
+		<span>This project is also availble on <a href="https://github.com/twinone/gpio-web">github</a></span>
+		<span>Also check out <a href="../demo">the first demo</a></span><br>
+		<p id="pinout"></p>
+
+	</div>
+	<br>
+	<div class="container">
+		<table id="pins-table">
+		</table>
+	</div>
+	<script type="text/javascript" src="js/jquery.min.js"></script>
+	<script type="text/javascript">
+
+	$(document).ready(function() {
+		var url = "../api/v1/api.php";
+		function getMappings() {
+			$.ajax({
+				type: "get",
+				dataType:"json",
+				url: url,
+				data: {"action":"get_mappings"},
+				success: function(result) {
+					var mappings = result['mappings'];
+					for (var key in mappings) {
+						if (mappings.hasOwnProperty(key)) {
+							$("#pin" + key).addClass("clickable");
+							$("#pin" + key).addClass("gpio" + mappings[key]);
+							$("#label" + key).text("GPIO " + mappings[key]);
+						}
+					}
+					getPins();
+				}
+			});
+		}
+
+		function getPins() {
+			// Get current pin state
+			$.ajax({
+				type:"get",
+				dataType: "json",
+				url: url,
+				data: {
+					"action":"input",
+					"pins": "all"
+				},
+				success : function(data) {
+					var gpio = data['pins'];
+					for (var key in gpio) {
+						if (gpio.hasOwnProperty(key)) {
+							var high = gpio[key] == "1";
+							$(".gpio"+key).addClass(high?"high":"low").removeClass(high?"low":"high");
+						}
+					}
+				}
+			});
+		}
+		
+		$("#pins-table").append('<tr id="labels-top"></tr><tr id="top">'
+			+'</tr><tr id="bottom"></tr><tr id="labels-bottom"></tr>'); 
+		for(var i = 1; i <= 25; i +=2) {
+			$("tr#labels-top").append('<td class="label" id="label' + (i+1) + '">DNC</td>');
+			$("tr#top").append('<td class="pin" id="pin' + (i+1) + '">'+(i+1)+'</td>');
+			$("tr#bottom").append('<td class="pin" id="pin' + i + '">'+i+'</td>');
+			$("tr#labels-bottom").append('<td class="label" id="label' + i + '">DNC</td>');
+		}
+		$("#label1").text('3V3');
+		$("#label2").text('5V');
+		$("#label6").text('GND');
+
+		$("#pin1").addClass('volt1');
+		$("#pin2").addClass('volt2');
+		$("#pin6").addClass('gnd');
+
+		$(".pin").on("click", function() {
+			if (!$(this).hasClass("clickable")) {
+				return;
+			}
+			var id = $(this).attr("id");
+			var val = $(this).hasClass("high") ? "0" : "1";
+			var pin = id.slice(3);
+			console.log("pin clicked! val="+val+", pin="+pin);
+			$(this).removeClass(val=="0"?"high":"low").addClass(val=="0"?"low":"high");
+			$.ajax({
+				url:url,
+				dataType:"json",
+				data: {
+					"action": "output",
+					"pins": pin,
+					"value": val,
+					"mode" : "board"
+				}
+			})
+		});
+
+		getMappings();
+
+
+		// Get revision
+		$.ajax({
+			type:"get",
+			dataType: "json",
+			url: url,
+			data: {
+				"action":"get_revision"
+			},
+			success : function(data) {
+				var rev = data['revision'];
+				var pinoutlink;
+				if (rev == "rev1") {
+					pinoutlink = "http://www.hobbytronics.co.uk/image/data/tutorial/raspberry-pi/gpio-pinout.jpg"
+				} else {
+					pinoutlink = "http://ecuflashking.com/2012-12-06-RaspberryPi/Raspberry-Pi-GPIO-Layout-Revision-2-e1347664831557.png";
+				}
+				$("#pinout").html("Your raspberry is a " + rev + ".<br>"
+					+ 'You can see the pinout <a href="' + pinoutlink + '">here</a>');
+			}
+		});
+	});
+</script>
+</body>
+</html>
