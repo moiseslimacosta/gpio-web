@@ -14,6 +14,14 @@ Features
   * A nice demo is included
   
 
+Screenshots
+===========
+
+![Screenshot 1](https://raw.github.com/twinone/gpio-web/master/screenshots/screenshot1.png "Screenshot 1")
+![Screenshot 3](https://raw.github.com/twinone/gpio-web/master/screenshots/screenshot3.png "Screenshot 3")
+
+
+
 Installation
 ============
 
@@ -26,12 +34,6 @@ $ git clone https://github.com/twinone/gpio-web
 $ cd gpio-web/install
 $ ./install.sh
 ```
-
-Screenshots
-===========
-
-![Screenshot 1](https://raw.github.com/twinone/gpio-web/master/screenshots/screenshot1.png "Screenshot 1")
-![Screenshot 2](https://raw.github.com/twinone/gpio-web/master/screenshots/screenshot2.png "Screenshot 2")
 
 
 Usage
