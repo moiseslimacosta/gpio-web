@@ -234,6 +234,10 @@ class Gpio {
 	}
 
 
+	public function shutdown($pins) {
+
+	}
+
 	public function close() {
 		$this->unexportAllPins();
 	}

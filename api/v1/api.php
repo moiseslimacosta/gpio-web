@@ -43,6 +43,15 @@ function carousel($pins, $numOnPins, $hop, $repeat) {
 	}
 }
 
+function shutdown($pins, $hop) {
+	global $gpio;
+	$size = count($pins);
+	foreach ($pins as $pin) {
+		$gpio->output($pin, Gpio::LOW);
+		usleep($hop * 1000);
+	}
+}
+
 
 // Let the user execute whatever long operation he wants (blink a led for a week?)
 // He can close the connection if he thinks it takes too long
@@ -80,6 +89,10 @@ switch ($action) {
 	$hop = $_GET['hop'];
 	$repeat = $_GET['repeat'];
 	carousel($pins, $on, $hop, $repeat);
+	break;
+
+	case 'shutdown':
+	shutdown($pins);
 	break;
 
 	case 'output':
